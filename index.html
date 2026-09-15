@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>產品發表過三關 - 拓展練習</title>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #f1f8e9;
+            --box-bg: #fffde7;
+            --border-color: #c5e1a5;
+            --text-main: #5d4037;
+            --btn-green: #81c784;
+            --btn-wrong: #e57373;
+            --ac-orange: #ffb74d;
+        }
+
+        * { box-sizing: border-box; font-family: 'Zen Maru Gothic', sans-serif; color: var(--text-main); }
+        
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#dcedc8 2px, transparent 2px);
+            background-size: 30px 30px;
+            margin: 0; padding: 15px;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%; max-width: 600px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 24px; padding: 20px;
+            box-shadow: 0 8px 16px rgba(139, 195, 74, 0.2);
+            display: none;
+        }
+
+        .active-screen { display: block; animation: fadeIn 0.4s; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1, h2, h3 { text-align: center; color: #7cb342; text-shadow: 1px 1px 0px #fff; }
+        
+        input[type="text"] {
+            width: 100%; padding: 12px; border: 3px solid var(--border-color);
+            border-radius: 12px; font-size: 1.1rem; text-align: center; outline: none; margin-bottom: 10px;
+        }
+        input[type="text"]:focus { border-color: var(--btn-green); }
+
+        .btn {
+            background: var(--btn-green); color: #fff; border: none;
+            border-radius: 16px; padding: 12px 24px; font-size: 1.1rem; font-weight: 700;
+            cursor: pointer; box-shadow: 0 4px 0 #66bb6a; transition: all 0.1s;
+            margin-top: 5px;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0 0 transparent !important; }
+        .btn:disabled { cursor: not-allowed; opacity: 0.6; box-shadow: none !important; transform: translateY(4px); }
+        
+        .level-grid { display: flex; flex-direction: column; gap: 15px; }
+        .level-card {
+            background: #fff; border: 4px solid var(--border-color); border-radius: 20px;
+            padding: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .level-card:hover { transform: scale(1.02); }
+        .level-card img { width: 100px; height: 100px; border-radius: 12px; object-fit: cover; border: 2px solid #eee; }
+        .level-info { flex-grow: 1; }
+        .level-score { font-weight: bold; color: #f57c00; font-size: 1.1rem; }
+
+        video { width: 100%; border-radius: 16px; border: 4px solid #aed581; margin-bottom: 15px; background: #000; }
+        .dialog-box {
+            background: var(--box-bg); border: 4px solid var(--border-color);
+            border-radius: 20px; padding: 20px; position: relative;
+        }
+        .options-container { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
+        .option-btn {
+            background: #fff; border: 2px solid #aed581; border-radius: 12px;
+            padding: 12px; font-size: 1rem; text-align: left; cursor: pointer; font-weight: 500; transition: 0.2s;
+        }
+        .option-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+        .option-btn.correct { background: var(--btn-green); color: #fff; border-color: var(--btn-green); }
+        .option-btn.wrong { background: var(--btn-wrong); color: #fff; border-color: var(--btn-wrong); }
+        
+        .action-dots { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
+        .dot-btn {
+            width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+            font-size: 1.2rem; box-shadow: 0 4px 0 rgba(0,0,0,0.1); display: none;
+        }
+        .dot-btn:active { transform: translateY(4px); box-shadow: 0 0 0 rgba(0,0,0,0); }
+        .dot-red { background: #ff5252; color: white; display: flex; align-items: center; justify-content: center;}
+        .dot-blue { background: #448aff; color: white; display: flex; align-items: center; justify-content: center; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-content {
+            background: var(--box-bg); border: 4px solid var(--ac-orange); border-radius: 20px;
+            padding: 25px; width: 85%; max-width: 400px; text-align: center;
+        }
+
+        #cert-area { text-align: center; padding: 20px; background: #fff; border: 5px dashed #aed581; border-radius: 20px; margin-bottom: 20px;}
+        .total-score { font-size: 3rem; color: #ff9800; font-weight: bold; margin: 10px 0; }
+        
+        .hint-btn { background: #ffb74d; box-shadow: 0 4px 0 #f57c00; margin-left: 10px; }
+        .btn-group { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        
+        .top-bar { display: flex; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
+        .top-bar .btn { margin-top: 0; padding: 8px 15px; font-size: 1rem; flex: 1; }
+    </style>
+</head>
+<body>
+
+<!-- 1. 登入畫面 -->
+<div id="screen-login" class="container active-screen" style="text-align: center;">
+    <img src="https://api.iconify.design/twemoji:leaf.svg" width="60" alt="leaf">
+    <h1>產品發表過三關</h1>
+    <p>請輸入你的姓名開始挑戰！</p>
+    <input type="text" id="player-name" placeholder="你的姓名...">
+    <br>
+    <button class="btn" onclick="startGame()">進入無人島 ✈️</button>
+</div>
+
+<!-- 2. 關卡選擇畫面 -->
+<div id="screen-levels" class="container">
+    <h2>🏝️ 選擇你要挑戰的關卡</h2>
+    <p style="text-align:center;">你好，<span id="display-name" style="font-weight:bold; color:#f57c00;"></span>！</p>
+    <div class="level-grid">
+        <div class="level-card" onclick="enterLevel('fan')">
+            <img src="P1.jpg" alt="便攜風扇" onerror="this.src='https://via.placeholder.com/100?text=P1'">
+            <div class="level-info">
+                <h3>第一關：便攜風扇</h3>
+                <div class="level-score">最高分數: <span id="score-fan">0</span></div>
+            </div>
+        </div>
+        <div class="level-card" onclick="enterLevel('watch')">
+            <img src="P2.jpg" alt="智能運動手錶" onerror="this.src='https://via.placeholder.com/100?text=P2'">
+            <div class="level-info">
+                <h3>第二關：智能手錶</h3>
+                <div class="level-score">最高分數: <span id="score-watch">0</span></div>
+            </div>
+        </div>
+        <div class="level-card" onclick="enterLevel('phone')">
+            <img src="P3.jpg" alt="智能摺疊手機" onerror="this.src='https://via.placeholder.com/100?text=P3'">
+            <div class="level-info">
+                <h3>第三關：摺疊手機</h3>
+                <div class="level-score">最高分數: <span id="score-phone">0</span></div>
+            </div>
+        </div>
+    </div>
+    <div style="text-align:center; margin-top:20px;">
+        <button class="btn" style="background:#ff9800; box-shadow:0 4px 0 #f57c00; width: 100%;" onclick="showFinalResult()">🏆 結算總分與下載證書</button>
+    </div>
+</div>
+
+<!-- 3. 遊戲畫面 -->
+<div id="screen-game" class="container">
+    <div class="top-bar">
+        <button class="btn" style="background:#ccc; box-shadow: 0 4px 0 #999;" onclick="goBackToLevels()">⬅ 返回目錄</button>
+        <button class="btn" style="background:#4fc3f7; box-shadow: 0 4px 0 #0288d1;" onclick="retryCurrentLevel()">🔄 重新挑戰</button>
+    </div>
+    
+    <!-- 簡化 video 標籤，直接用 JS 控制 src，提升本地相容性 -->
+    <video id="game-video" controls playsinline preload="metadata">
+        你的瀏覽器不支援 HTML5 影片播放。
+    </video>
+    
+    <div class="dialog-box" id="question-box">
+        <div id="q-title" style="font-weight:bold; color:#7cb342; margin-bottom:10px;"></div>
+        <div id="q-text" style="font-size:1.1rem; line-height:1.6;"></div>
+        
+        <!-- 選擇題區塊 -->
+        <div id="mcq-area" class="options-container"></div>
+        
+        <!-- 填空題區塊 -->
+        <div id="fill-area" style="display:none; text-align:center; margin-top:15px;">
+            <input type="text" id="fill-input" placeholder="請輸入答案...">
+            <div class="btn-group">
+                <button class="btn" id="submit-fill-btn" onclick="checkFillAnswer()">提交答案</button>
+                <button class="btn hint-btn" id="hint-btn" onclick="useHint()">💡 提示(扣1分)</button>
+            </div>
+        </div>
+
+        <div class="action-dots">
+            <button class="dot-btn dot-red" id="dot-red" onclick="showRedDot()">🔴</button>
+            <button class="dot-btn dot-blue" id="dot-blue" onclick="showBlueDot()">🔵</button>
+        </div>
+
+        <button class="btn" id="next-btn" style="width:100%; display:none; background:#29b6f6; box-shadow:0 4px 0 #0288d1; margin-top: 15px;" onclick="nextQuestion()">下一題 ➔</button>
+    </div>
+</div>
+
+<!-- 4. 結算畫面 -->
+<div id="screen-result" class="container">
+    <div id="cert-area">
+        <img src="https://api.iconify.design/twemoji:party-popper.svg" width="50" alt="party">
+        <h2>拓展練習結業證書</h2>
+        <p>學員：<strong id="cert-name" style="font-size:1.2rem;"></strong></p>
+        <p>你在本次挑戰中獲得了總分：</p>
+        <div class="total-score" id="cert-score">0</div>
+        <p style="color:#888;">太棒了！你已經掌握了產品發表的技巧！</p>
+    </div>
+    <button class="btn" style="width:100%;" onclick="downloadScreenshot()">📸 下載成績截圖</button>
+    <button class="btn" style="width:100%; background:#ccc; box-shadow:0 4px 0 #999;" onclick="location.reload()">重新開始</button>
+</div>
+
+<!-- 彈窗 -->
+<div class="modal-overlay" id="modal">
+    <div class="modal-content">
+        <h3 id="modal-title"></h3>
+        <p id="modal-text" style="text-align:left; line-height:1.6;"></p>
+        <button class="btn" onclick="document.getElementById('modal').style.display='none'">我知道了</button>
+    </div>
+</div>
+
+<script>
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    if (type === 'click') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'correct') {
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    } else if (type === 'wrong') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    }
+}
+
+let playerName = "";
+let currentLevelId = "";
+let currentQIndex = 0;
+let currentScore = 0;
+let scores = { fan: 0, watch: 0, phone: 0 }; 
+
+let mcqWrongCount = 0; 
+let hintUsed = false;  
+
+const levelData = {
+    'fan': {
+        title: "第一關：便攜風扇", video: "fan_5.mp4", // 更新檔名
+        questions: [
+            { type: "mcq", text: "功能方面，這款便攜風扇有語音控制功能，___。", ans: "說一聲就可以控制開關，不用動手", 
+              opts: [
+                  { text: "設有實體按鍵，觸感極佳操作明確", feedback: "這款風扇有按鍵沒錯，但影片強調的是「語音控制」解放雙手的便利性哦！", isCorrect: false },
+                  { text: "必須連接手機應用程式才能操作", feedback: "錯誤。影片主打語音功能，不依賴手機App。", isCorrect: false },
+                  { text: "說一聲就可以控制開關，不用動手", isCorrect: true }
+              ], tech: "轉換表達方式", alts: "其他合理答案：開口即可操作 / 憑語音指令控制" },
+            { type: "mcq", text: "外形方面，這款便攜風扇可調節角度，___。", ans: "時尚輕巧，有多種顏色選擇", 
+              opts: [
+                  { text: "材質堅固厚實，展現重工業風格", feedback: "重工業風格雖然堅固，但這款產品主打的是「輕巧便攜」。", isCorrect: false },
+                  { text: "設計單一，只有黑色可供選擇", feedback: "錯誤。影片展示了它擁有多種顏色選擇。", isCorrect: false },
+                  { text: "時尚輕巧，有多種顏色選擇", isCorrect: true }
+              ], tech: "突出優點/效果", alts: "其他合理答案：外型新穎且顏色豐富" },
+            { type: "mcq", text: "功能方面，這款便攜風扇有風力強，三種風力選擇，___。", ans: "適合不同環境使用", 
+              opts: [
+                  { text: "專為極地高溫設計，風力無比強大", feedback: "雖然風力強，但並非專為極端環境設計，而是適合「日常的不同環境」。", isCorrect: false },
+                  { text: "只能在室內冷氣房使用", feedback: "錯誤。這款風扇在戶外也能方便使用。", isCorrect: false },
+                  { text: "適合不同環境使用", isCorrect: true }
+              ], tech: "突出優點/效果", alts: "其他合理答案：滿足多種場景需求" },
+            { type: "fill", text: "功能方面，這款便攜風扇具備 LED 照明燈，還可以 USB 充電，___。", ans: "操作靈活", keys: ["靈活", "方便", "隨時", "實用", "不受限"], hint: "方向：形容不受環境限制，使用起來隨心所欲、很方便。", tech: "突出優點/效果", alts: "其他合理答案：隨時隨地都可用 / 方便實用 / 靈活多變" },
+            { type: "fill", text: "質量方面，這款便攜風扇採用___。", ans: "低噪音運行，使用安靜安全", keys: ["噪音", "安靜", "安全", "靜音", "不干擾"], hint: "方向：想想看風扇運作時發出的聲音大不大？對使用者的保障是什麼？", tech: "突出優點/效果", alts: "其他合理答案：靜音摩打，不干擾作息 / 運作無噪音" }
+        ]
+    },
+    'watch': {
+        title: "第二關：智能運動手錶", video: "watch_5.mp4", // 更新檔名
+        questions: [
+            { type: "mcq", text: "外形方面，這款智能運動手錶輕巧美觀，___、外觀時尚。", ans: "又輕又薄", 
+              opts: [
+                  { text: "採用重金屬打造，極具份量感", feedback: "份量感通常代表較重，但這款手錶強調的是「輕巧美觀」與輕薄。", isCorrect: false },
+                  { text: "設計複雜繁瑣", feedback: "錯誤。影片展示的設計是簡約而非複雜的。", isCorrect: false },
+                  { text: "又輕又薄", isCorrect: true }
+              ], tech: "轉換表達方式", alts: "其他合理答案：輕盈纖薄 / 毫無厚重感" },
+            { type: "mcq", text: "外形方面，這款智能運動手錶簡約輕巧設計時尚，___。", ans: "充滿時代氣息，長時間佩戴零負擔", 
+              opts: [
+                  { text: "奢華鑲鑽設計，適合出席晚宴", feedback: "鑲鑽設計很華麗，但這款手錶主打的是「時代氣息與零負擔」的運動風。", isCorrect: false },
+                  { text: "造型復古，適合收藏不宜日常佩戴", feedback: "錯誤。這是一款現代科技產品，且非常適合日常佩戴。", isCorrect: false },
+                  { text: "充滿時代氣息，長時間佩戴零負擔", isCorrect: true }
+              ], tech: "突出優點/效果", alts: "其他合理答案：極具科技感，佩戴舒適自然" },
+            { type: "mcq", text: "外形方面，這款智能運動手錶配有多種顏色，___。", ans: "可以搭配不同衣服", 
+              opts: [
+                  { text: "專為專業極限運動員設計，功能硬核", feedback: "硬核功能很棒，但題目問的是「多種顏色」帶來的優勢（搭配衣服）。", isCorrect: false },
+                  { text: "只適合在健身房內佩戴", feedback: "錯誤。它的多種顏色設計讓它同樣適合日常外出與不同穿搭。", isCorrect: false },
+                  { text: "可以搭配不同衣服", isCorrect: true }
+              ], tech: "突出優點/效果", alts: "其他合理答案：百搭易襯 / 適合不同造型" },
+            { type: "mcq", text: "質量方面，這款智能運動手錶採用金屬外殼，___。", ans: "有效防跌防撞", 
+              opts: [
+                  { text: "外殼採用透明玻璃，晶瑩剔透", feedback: "透明材質雖然美觀，但題目已經指明是「金屬外殼」，強調的是防撞效果。", isCorrect: false },
+                  { text: "容易刮花，不建議在戶外使用", feedback: "錯誤。運動手錶的金屬外殼設計就是為了能應付戶外環境。", isCorrect: false },
+                  { text: "有效防跌防撞", isCorrect: true }
+              ], tech: "突出優點/效果", alts: "其他合理答案：堅固耐用 / 抗摔能力強" },
+            { type: "fill", text: "質量方面，這款智能運動手錶採用高品質的物料製造，___。", ans: "抗摔耐磨", keys: ["摔", "磨", "耐用", "堅固", "不易壞", "不易損"], hint: "方向：形容物體掉在地板上不易損壞，表面也不容易被刮花。", tech: "突出優點/效果", alts: "其他合理答案：經久耐用 / 不易損壞 / 防刮花" },
+            { type: "fill", text: "功能方面，這款智能運動手錶採用 AI 健康管家系統，可以___。", ans: "智能監測心率、血氧、血壓和壓力指數", keys: ["監測", "心率", "血氧", "血壓", "壓力", "健康", "身體狀況"], hint: "方向：跟測量常見的身體健康數據有關（如心跳、血液狀況等）。", tech: "突出優點/效果", alts: "其他合理答案：全方位追蹤健康數據 / 實時了解身體狀況" },
+            { type: "fill", text: "功能方面，這款智能運動手錶支援多種電子支付，___。", ans: "沒帶手機也能輕鬆購物", keys: ["沒帶手機", "手機", "購物", "付款", "買東西", "結帳"], hint: "方向：既然支援電子支付，就算出門忘記帶通訊設備，買東西會受影響嗎？", tech: "突出優點/效果", alts: "其他合理答案：付款快捷方便 / 抬手即可結帳" }
+        ]
+    },
+    'phone': {
+        title: "第三關：智能摺疊手機", video: "phone_5.mp4", // 更新檔名
+        questions: [
+            { type: "mcq", text: "功能方面，這款手機有指紋辨識功能，___。", ans: "解鎖非常方便", 
+              opts: [
+                  { text: "具備傳統密碼鎖，提供經典體驗", feedback: "傳統密碼鎖很經典，但「指紋辨識」最大的優勢是快速解鎖的方便性。", isCorrect: false },
+                  { text: "解鎖過程繁瑣，需要多重驗證", feedback: "錯誤。指紋辨識是為了加速解鎖，並不繁瑣。", isCorrect: false },
+                  { text: "解鎖非常方便", isCorrect: true }
+              ], tech: "突出優點/效果", alts: "其他合理答案：一觸即開 / 快捷安全" },
+            { type: "mcq", text: "功能方面，這款手機有遊戲模式，___。", ans: "流暢暢玩/火力全開不卡頓", 
+              opts: [
+                  { text: "內建經典懷舊小遊戲，充滿童趣", feedback: "懷舊小遊戲很有趣，但影片強調的遊戲模式是能「火力全開」應付大型遊戲不卡頓。", isCorrect: false },
+                  { text: "遊戲畫面經常出現延遲和卡頓", feedback: "錯誤。遊戲模式的重點就是為了解決延遲與卡頓問題。", isCorrect: false },
+                  { text: "流暢暢玩/火力全開不卡頓", isCorrect: true }
+              ], tech: "突出優點/效果", alts: "其他合理答案：遊戲體驗極佳 / 運行大型遊戲毫無壓力" },
+            { type: "mcq", text: "功能方面，具備人工智能助手，還多點觸控顯示屏，___。", ans: "操作簡易方便", 
+              opts: [
+                  { text: "系統設定極度專業，適合工程師使用", feedback: "專業設定適合工程師，但這款手機的 AI 與多點觸控是為了讓一般使用者也能「操作簡易」。", isCorrect: false },
+                  { text: "觸控反應遲鈍，操作容易失誤", feedback: "錯誤。多點觸控通常十分靈敏且直觀。", isCorrect: false },
+                  { text: "操作簡易方便", isCorrect: true }
+              ], tech: "突出優點/效果", alts: "其他合理答案：使用直觀容易 / 互動流暢自然" },
+            { type: "mcq", text: "質量方面，這款手機待機時間長，___。", ans: "不需要常常充電", 
+              opts: [
+                  { text: "支援極速耗電模式，讓效能最大化", feedback: "極速模式會大量耗電，但題目強調的是「待機時間長」的優點，也就是不用常充電。", isCorrect: false },
+                  { text: "待機時間極短，需要隨身攜帶充電寶", feedback: "錯誤。待機時間長代表不需要頻繁充電，這點描述完全相反。", isCorrect: false },
+                  { text: "不需要常常充電", isCorrect: true }
+              ], tech: "突出優點/效果", alts: "其他合理答案：續航力持久 / 告別電量焦慮" },
+            { type: "fill", text: "質量方面，這款手機防塵防水，___。", ans: "下雨弄濕了也不怕", keys: ["下雨", "雨", "濕", "水", "惡劣環境", "防潑", "不怕水"], hint: "方向：既然防水，遇到壞天氣（例如天降甘霖）時使用起來會怎樣？", tech: "突出優點/效果", alts: "其他合理答案：適合各種惡劣環境 / 日常防潑水無憂" },
+            { type: "fill", text: "質量方面，這款手機採用金屬外殼，___。", ans: "豪華典雅", keys: ["豪華", "典雅", "高貴", "高級", "美觀", "堅固", "質感"], hint: "方向：金屬給人的感覺通常是高貴、有氣質的，試著用四個字的形容詞表達。", tech: "突出優點/效果", alts: "其他合理答案：質感高級 / 堅固且美觀" },
+            
+            // 這裡更新了第七題，將第二個答案直接寫入題目文字中
+            { type: "fill", text: "外型方面，這款手機備有折疊屏幕，展開___，還可以分屏處理文件，工作效率翻倍。", ans: "秒變小平板追劇", keys: ["平板", "大螢幕", "追劇", "看片", "秒變", "視野", "體驗"], hint: "方向：螢幕變大後像什麼設備？可以用來做什麼娛樂活動？", tech: "突出優點/效果", alts: "其他合理答案：視覺體驗升級 / 視野更廣闊" },
+            
+            { type: "fill", text: "外型方面，這款手機機身超薄，___。", ans: "輕巧美觀，簡約時尚，有多種顏色選擇", keys: ["輕巧", "美觀", "簡約", "時尚", "顏色", "便攜", "精緻"], hint: "方向：形容重量輕盈、外觀風格，以及它在色彩上提供的多樣性。", tech: "突出優點/效果", alts: "其他合理答案：顏值極高，便於攜帶且款式多樣" }
+        ]
+    }
+};
+
+function switchScreen(screenId) {
+    document.querySelectorAll('.container').forEach(c => c.classList.remove('active-screen'));
+    document.getElementById(screenId).classList.add('active-screen');
+}
+
+function startGame() {
+    playSound('click');
+    const nameInput = document.getElementById('player-name').value.trim();
+    if (!nameInput) { alert("請輸入姓名！"); return; }
+    playerName = nameInput;
+    document.getElementById('display-name').textContent = playerName;
+    switchScreen('screen-levels');
+}
+
+function enterLevel(levelId) {
+    playSound('click');
+    currentLevelId = levelId;
+    currentQIndex = 0;
+    currentScore = 0; 
+    
+    const video = document.getElementById('game-video');
+    video.src = levelData[levelId].video;
+    
+    video.onerror = function() {
+        console.error("無法載入影片:", video.src);
+        alert(`無法載入影片檔案 ${levelData[levelId].video}！\n請確保 HTML 檔案與 mp4 影片檔案存放在同一個資料夾，並且檔名大小寫完全一致。`);
+    };
+
+    video.load();
+    switchScreen('screen-game');
+    loadQuestion();
+}
+
+// 重新挑戰當前關卡
+function retryCurrentLevel() {
+    if (confirm("確定要重新挑戰本關嗎？目前本關的分數將會重置。")) {
+        playSound('click');
+        enterLevel(currentLevelId);
+    }
+}
+
+function goBackToLevels() {
+    playSound('click');
+    document.getElementById('game-video').pause();
+    if(currentScore > scores[currentLevelId]) {
+        scores[currentLevelId] = currentScore;
+        document.getElementById(`score-${currentLevelId}`).textContent = scores[currentLevelId];
+    }
+    switchScreen('screen-levels');
+}
+
+function shuffle(array) {
+    return array.sort(() => Math.random() - 0.5);
+}
+
+function loadQuestion() {
+    const q = levelData[currentLevelId].questions[currentQIndex];
+    mcqWrongCount = 0;
+    hintUsed = false;  
+    
+    document.getElementById('q-title').textContent = `第 ${currentQIndex + 1} 題 (${q.type === 'mcq' ? '選擇題 2分' : '填空題 4分'})`;
+    document.getElementById('q-text').innerHTML = q.text.replace('___', '<span style="display:inline-block; width:100px; border-bottom:2px solid #5d4037;"></span>');
+    
+    document.getElementById('dot-red').style.display = 'none'; 
+    document.getElementById('next-btn').style.display = 'none'; 
+
+    if (q.type === 'mcq') {
+        document.getElementById('mcq-area').style.display = 'flex';
+        document.getElementById('fill-area').style.display = 'none';
+        
+        const mcqArea = document.getElementById('mcq-area');
+        mcqArea.innerHTML = '';
+        const shuffledOpts = shuffle([...q.opts]);
+        
+        shuffledOpts.forEach(optObj => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = optObj.text;
+            btn.onclick = () => handleMCQ(btn, optObj, q);
+            mcqArea.appendChild(btn);
+        });
+    } else {
+        document.getElementById('mcq-area').style.display = 'none';
+        document.getElementById('fill-area').style.display = 'block';
+        document.getElementById('fill-input').value = '';
+        document.getElementById('hint-btn').disabled = false;
+        document.getElementById('submit-fill-btn').disabled = false;
+    }
+}
+
+function handleMCQ(btn, selectedOptObj, q) {
+    if (selectedOptObj.isCorrect) {
+        playSound('correct');
+        btn.classList.add('correct');
+        currentScore += 2;
+        
+        document.getElementById('q-text').innerHTML = q.text.replace('___', `<span style="color:var(--btn-green); font-weight:bold; border-bottom:2px solid var(--btn-green); padding: 0 5px;">${q.ans}</span>`);
+        document.getElementById('dot-red').style.display = 'flex';
+        
+        const btns = document.getElementById('mcq-area').querySelectorAll('.option-btn');
+        btns.forEach(b => b.disabled = true);
+        document.getElementById('next-btn').style.display = 'block';
+    } else {
+        playSound('wrong');
+        btn.classList.add('wrong');
+        btn.disabled = true; 
+        currentScore -= 1;
+        mcqWrongCount++;
+        
+        if (mcqWrongCount < 2) {
+            showModal("❌ 答錯了 (扣1分)", `${selectedOptObj.feedback}<br><br>💡 你還有 1 次機會，請再試一次！`);
+        } else {
+            showModal("❌ 答錯兩次 (共扣2分)", `${selectedOptObj.feedback}<br><br>正確答案是：<strong>${q.ans}</strong>`);
+            const btns = document.getElementById('mcq-area').querySelectorAll('.option-btn');
+            btns.forEach(b => {
+                b.disabled = true;
+                if(b.textContent === q.ans) b.classList.add('correct');
+            });
+            document.getElementById('q-text').innerHTML = q.text.replace('___', `<span style="color:var(--btn-wrong); font-weight:bold; border-bottom:2px solid var(--btn-wrong); padding: 0 5px;">${q.ans}</span>`);
+            document.getElementById('next-btn').style.display = 'block';
+        }
+    }
+}
+
+function useHint() {
+    if (hintUsed) return;
+    playSound('click');
+    hintUsed = true;
+    currentScore -= 1;
+    const q = levelData[currentLevelId].questions[currentQIndex];
+    document.getElementById('hint-btn').disabled = true;
+    showModal("💡 提示 (已扣1分)", q.hint);
+}
+
+function checkFillAnswer() {
+    const q = levelData[currentLevelId].questions[currentQIndex];
+    const input = document.getElementById('fill-input').value.trim();
+    if (!input) { alert("請輸入答案！"); return; }
+    
+    document.getElementById('submit-fill-btn').disabled = true;
+    document.getElementById('hint-btn').disabled = true; 
+    
+    let isCorrect = q.keys.some(key => input.includes(key));
+    
+    if (isCorrect) {
+        playSound('correct');
+        currentScore += 4; 
+        showModal("✅ 答對了 (獲4分)", `你的答案很棒！<br><br><strong>參考標準答案：</strong><br>${q.ans}`);
+        document.getElementById('dot-red').style.display = 'flex';
+        document.getElementById('q-text').innerHTML = q.text.replace('___', `<span style="color:var(--btn-green); font-weight:bold; border-bottom:2px solid var(--btn-green); padding: 0 5px;">${input}</span>`);
+    } else {
+        playSound('wrong');
+        currentScore -= 1;
+        showModal("❌ 語意未達標 (扣1分)", `你的答案可能偏離了重點。<br><br><strong>參考標準答案：</strong><br>${q.ans}<br><br><strong>其他合理方向：</strong><br>${q.alts}`);
+        document.getElementById('q-text').innerHTML = q.text.replace('___', `<span style="color:var(--btn-wrong); font-weight:bold; border-bottom:2px solid var(--btn-wrong); padding: 0 5px;">${q.ans}</span>`);
+    }
+    document.getElementById('next-btn').style.display = 'block';
+}
+
+function nextQuestion() {
+    playSound('click');
+    currentQIndex++;
+    if (currentQIndex < levelData[currentLevelId].questions.length) {
+        loadQuestion();
+    } else {
+        showModal("🎉 關卡完成！", `恭喜完成本關卡！<br>你在本關獲得了 ${currentScore} 分。<br><br>點擊「我知道了」返回目錄，或者可以使用上方按鈕重新挑戰！`);
+        goBackToLevels();
+    }
+}
+
+function showRedDot() {
+    playSound('click');
+    const q = levelData[currentLevelId].questions[currentQIndex];
+    showModal('📖 參考答案與拓展', `<strong>標準答案：</strong><br><span style="color:#e57373;">${q.ans}</span><br><br><strong>${q.alts}</strong>`);
+}
+
+function showBlueDot() {
+    playSound('click');
+    const q = levelData[currentLevelId].questions[currentQIndex];
+    showModal('💡 表達技巧', `(${q.tech})`);
+}
+
+function showModal(title, text) {
+    document.getElementById('modal-title').innerHTML = title;
+    document.getElementById('modal-text').innerHTML = text;
+    document.getElementById('modal').style.display = 'flex';
+}
+
+function showFinalResult() {
+    playSound('correct');
+    const total = scores.fan + scores.watch + scores.phone;
+    document.getElementById('cert-name').textContent = playerName;
+    document.getElementById('cert-score').textContent = total;
+    switchScreen('screen-result');
+}
+
+function downloadScreenshot() {
+    playSound('click');
+    const certArea = document.getElementById('cert-area');
+    html2canvas(certArea).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `${playerName}_產品發表過三關成績.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+}
+</script>
+
+</body>
+</html>
