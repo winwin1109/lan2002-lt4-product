@@ -98,7 +98,7 @@
         }
         .modal-content {
             background: var(--box-bg); border: 4px solid var(--ac-orange); border-radius: 20px;
-            padding: 25px; width: 85%; max-width: 400px; text-align: center;
+            padding: 25px; width: 85%; max-width: 400px; text-align: center; max-height: 90vh; overflow-y: auto;
         }
 
         #cert-area { text-align: center; padding: 20px; background: #fff; border: 5px dashed #aed581; border-radius: 20px; margin-bottom: 20px;}
@@ -149,6 +149,14 @@
                 <div class="level-score">最高分數: <span id="score-phone">0</span></div>
             </div>
         </div>
+        <!-- 第四關：雙門冰箱 -->
+        <div class="level-card" onclick="enterLevel('fridge')">
+            <img src="P4.jpg" alt="雙門冰箱" onerror="this.src='https://via.placeholder.com/100?text=P4'">
+            <div class="level-info">
+                <h3>第四關：雙門冰箱</h3>
+                <div class="level-score">最高分數: <span id="score-fridge">0</span></div>
+            </div>
+        </div>
     </div>
     <div style="text-align:center; margin-top:20px;">
         <button class="btn" style="background:#ff9800; box-shadow:0 4px 0 #f57c00; width: 100%;" onclick="showFinalResult()">🏆 結算總分與下載證書</button>
@@ -162,7 +170,6 @@
         <button class="btn" style="background:#4fc3f7; box-shadow: 0 4px 0 #0288d1;" onclick="retryCurrentLevel()">🔄 重新挑戰</button>
     </div>
     
-    <!-- 簡化 video 標籤，直接用 JS 控制 src，提升本地相容性 -->
     <video id="game-video" controls playsinline preload="metadata">
         你的瀏覽器不支援 HTML5 影片播放。
     </video>
@@ -195,15 +202,20 @@
 <!-- 4. 結算畫面 -->
 <div id="screen-result" class="container">
     <div id="cert-area">
-        <img src="https://api.iconify.design/twemoji:party-popper.svg" width="50" alt="party">
+        <img src="https://api.iconify.design/twemoji:party-popper.svg" width="50" alt="慶祝">
         <h2>拓展練習結業證書</h2>
         <p>學員：<strong id="cert-name" style="font-size:1.2rem;"></strong></p>
         <p>你在本次挑戰中獲得了總分：</p>
         <div class="total-score" id="cert-score">0</div>
-        <p style="color:#888;">太棒了！你已經掌握了產品發表的技巧！</p>
+        <p style="color:#888; margin-bottom: 5px;">太棒了！你已經掌握了產品發表的技巧！</p>
+        
+        <!-- 動態生成的填空紀錄區 -->
+        <div id="cert-answers" style="margin-top: 15px; border-top: 2px dashed #c5e1a5; padding-top: 15px; text-align: left;">
+            <!-- JS 將在這裡插入紀錄 -->
+        </div>
     </div>
-    <button class="btn" style="width:100%;" onclick="downloadScreenshot()">📸 下載成績截圖</button>
-    <button class="btn" style="width:100%; background:#ccc; box-shadow:0 4px 0 #999;" onclick="location.reload()">重新開始</button>
+    <button class="btn" style="width:100%; margin-bottom: 10px;" onclick="downloadScreenshot()">📸 下載成績截圖</button>
+    <button class="btn" style="width:100%; background:#ccc; box-shadow:0 4px 0 #999;" onclick="location.reload()">退出遊戲</button>
 </div>
 
 <!-- 彈窗 -->
@@ -248,103 +260,70 @@ let playerName = "";
 let currentLevelId = "";
 let currentQIndex = 0;
 let currentScore = 0;
-let scores = { fan: 0, watch: 0, phone: 0 }; 
+let scores = { fan: 0, watch: 0, phone: 0, fridge: 0 }; 
+let userFillRecords = { fan: {}, watch: {}, phone: {}, fridge: {} }; 
 
 let mcqWrongCount = 0; 
 let hintUsed = false;  
 
+// 大幅擴增了所有填充題的 keywords (keys) 與 替代答案 (alts)，增加容錯率與合理性
 const levelData = {
     'fan': {
-        title: "第一關：便攜風扇", video: "fan_5.mp4", // 更新檔名
+        title: "第一關：便攜風扇", video: "fan_5.mp4", 
         questions: [
-            { type: "mcq", text: "功能方面，這款便攜風扇有語音控制功能，___。", ans: "說一聲就可以控制開關，不用動手", 
-              opts: [
-                  { text: "設有實體按鍵，觸感極佳操作明確", feedback: "這款風扇有按鍵沒錯，但影片強調的是「語音控制」解放雙手的便利性哦！", isCorrect: false },
-                  { text: "必須連接手機應用程式才能操作", feedback: "錯誤。影片主打語音功能，不依賴手機App。", isCorrect: false },
-                  { text: "說一聲就可以控制開關，不用動手", isCorrect: true }
-              ], tech: "轉換表達方式", alts: "其他合理答案：開口即可操作 / 憑語音指令控制" },
-            { type: "mcq", text: "外形方面，這款便攜風扇可調節角度，___。", ans: "時尚輕巧，有多種顏色選擇", 
-              opts: [
-                  { text: "材質堅固厚實，展現重工業風格", feedback: "重工業風格雖然堅固，但這款產品主打的是「輕巧便攜」。", isCorrect: false },
-                  { text: "設計單一，只有黑色可供選擇", feedback: "錯誤。影片展示了它擁有多種顏色選擇。", isCorrect: false },
-                  { text: "時尚輕巧，有多種顏色選擇", isCorrect: true }
-              ], tech: "突出優點/效果", alts: "其他合理答案：外型新穎且顏色豐富" },
-            { type: "mcq", text: "功能方面，這款便攜風扇有風力強，三種風力選擇，___。", ans: "適合不同環境使用", 
-              opts: [
-                  { text: "專為極地高溫設計，風力無比強大", feedback: "雖然風力強，但並非專為極端環境設計，而是適合「日常的不同環境」。", isCorrect: false },
-                  { text: "只能在室內冷氣房使用", feedback: "錯誤。這款風扇在戶外也能方便使用。", isCorrect: false },
-                  { text: "適合不同環境使用", isCorrect: true }
-              ], tech: "突出優點/效果", alts: "其他合理答案：滿足多種場景需求" },
-            { type: "fill", text: "功能方面，這款便攜風扇具備 LED 照明燈，還可以 USB 充電，___。", ans: "操作靈活", keys: ["靈活", "方便", "隨時", "實用", "不受限"], hint: "方向：形容不受環境限制，使用起來隨心所欲、很方便。", tech: "突出優點/效果", alts: "其他合理答案：隨時隨地都可用 / 方便實用 / 靈活多變" },
-            { type: "fill", text: "質量方面，這款便攜風扇採用___。", ans: "低噪音運行，使用安靜安全", keys: ["噪音", "安靜", "安全", "靜音", "不干擾"], hint: "方向：想想看風扇運作時發出的聲音大不大？對使用者的保障是什麼？", tech: "突出優點/效果", alts: "其他合理答案：靜音摩打，不干擾作息 / 運作無噪音" }
+            { type: "mcq", text: "功能方面，這款便攜風扇有語音控制功能，___。", ans: "說一聲就可以控制開關，不用動手", opts: [ { text: "設有實體按鍵，觸感極佳操作明確", feedback: "這款風扇有按鍵沒錯，但影片強調的是「語音控制」解放雙手的便利性哦！", isCorrect: false }, { text: "必須連接手機應用程式才能操作", feedback: "錯誤。影片主打語音功能，不依賴手機App。", isCorrect: false }, { text: "說一聲就可以控制開關，不用動手", isCorrect: true } ], tech: "轉換表達方式", alts: "其他合理答案：開口即可操作 / 憑語音指令控制" },
+            { type: "mcq", text: "外形方面，這款便攜風扇可調節角度，___。", ans: "時尚輕巧，有多種顏色選擇", opts: [ { text: "材質堅固厚實，展現重工業風格", feedback: "重工業風格雖然堅固，但這款產品主打的是「輕巧便攜」。", isCorrect: false }, { text: "設計單一，只有黑色可供選擇", feedback: "錯誤。影片展示了它擁有多種顏色選擇。", isCorrect: false }, { text: "時尚輕巧，有多種顏色選擇", isCorrect: true } ], tech: "突出優點/效果", alts: "其他合理答案：外型新穎且顏色豐富" },
+            { type: "mcq", text: "功能方面，這款便攜風扇有風力強，三種風力選擇，___。", ans: "適合不同環境使用", opts: [ { text: "專為極地高溫設計，風力無比強大", feedback: "雖然風力強，但並非專為極端環境設計，而是適合「日常的不同環境」。", isCorrect: false }, { text: "只能在室內冷氣房使用", feedback: "錯誤。這款風扇在戶外也能方便使用。", isCorrect: false }, { text: "適合不同環境使用", isCorrect: true } ], tech: "突出優點/效果", alts: "其他合理答案：滿足多種場景需求" },
+            { type: "fill", text: "功能方面，這款便攜風扇具備 LED 照明燈，還可以 USB 充電，___。", ans: "操作靈活", keys: ["靈活", "方便", "隨時", "實用", "不受限", "自如", "多變", "便捷", "彈性", "輕鬆", "便利"], hint: "方向：形容不受環境限制，使用起來隨心所欲、很方便。", tech: "突出優點/效果", alts: "其他合理答案：隨時隨地都可用 / 方便實用 / 靈活多變 / 運用極具彈性 / 便捷實用" },
+            { type: "fill", text: "質量方面，這款便攜風扇採用___。", ans: "低噪音運行，使用安靜安全", keys: ["噪音", "安靜", "安全", "靜音", "不干擾", "寧靜", "無聲", "悄無聲息", "低音", "平靜"], hint: "方向：想想看風扇運作時發出的聲音大不大？對使用者的保障是什麼？", tech: "突出優點/效果", alts: "其他合理答案：靜音摩打，不干擾作息 / 運作無噪音 / 極致寧靜的設計 / 安全且無聲" }
         ]
     },
     'watch': {
-        title: "第二關：智能運動手錶", video: "watch_5.mp4", // 更新檔名
+        title: "第二關：智能運動手錶", video: "watch_5.mp4",
         questions: [
-            { type: "mcq", text: "外形方面，這款智能運動手錶輕巧美觀，___、外觀時尚。", ans: "又輕又薄", 
-              opts: [
-                  { text: "採用重金屬打造，極具份量感", feedback: "份量感通常代表較重，但這款手錶強調的是「輕巧美觀」與輕薄。", isCorrect: false },
-                  { text: "設計複雜繁瑣", feedback: "錯誤。影片展示的設計是簡約而非複雜的。", isCorrect: false },
-                  { text: "又輕又薄", isCorrect: true }
-              ], tech: "轉換表達方式", alts: "其他合理答案：輕盈纖薄 / 毫無厚重感" },
-            { type: "mcq", text: "外形方面，這款智能運動手錶簡約輕巧設計時尚，___。", ans: "充滿時代氣息，長時間佩戴零負擔", 
-              opts: [
-                  { text: "奢華鑲鑽設計，適合出席晚宴", feedback: "鑲鑽設計很華麗，但這款手錶主打的是「時代氣息與零負擔」的運動風。", isCorrect: false },
-                  { text: "造型復古，適合收藏不宜日常佩戴", feedback: "錯誤。這是一款現代科技產品，且非常適合日常佩戴。", isCorrect: false },
-                  { text: "充滿時代氣息，長時間佩戴零負擔", isCorrect: true }
-              ], tech: "突出優點/效果", alts: "其他合理答案：極具科技感，佩戴舒適自然" },
-            { type: "mcq", text: "外形方面，這款智能運動手錶配有多種顏色，___。", ans: "可以搭配不同衣服", 
-              opts: [
-                  { text: "專為專業極限運動員設計，功能硬核", feedback: "硬核功能很棒，但題目問的是「多種顏色」帶來的優勢（搭配衣服）。", isCorrect: false },
-                  { text: "只適合在健身房內佩戴", feedback: "錯誤。它的多種顏色設計讓它同樣適合日常外出與不同穿搭。", isCorrect: false },
-                  { text: "可以搭配不同衣服", isCorrect: true }
-              ], tech: "突出優點/效果", alts: "其他合理答案：百搭易襯 / 適合不同造型" },
-            { type: "mcq", text: "質量方面，這款智能運動手錶採用金屬外殼，___。", ans: "有效防跌防撞", 
-              opts: [
-                  { text: "外殼採用透明玻璃，晶瑩剔透", feedback: "透明材質雖然美觀，但題目已經指明是「金屬外殼」，強調的是防撞效果。", isCorrect: false },
-                  { text: "容易刮花，不建議在戶外使用", feedback: "錯誤。運動手錶的金屬外殼設計就是為了能應付戶外環境。", isCorrect: false },
-                  { text: "有效防跌防撞", isCorrect: true }
-              ], tech: "突出優點/效果", alts: "其他合理答案：堅固耐用 / 抗摔能力強" },
-            { type: "fill", text: "質量方面，這款智能運動手錶採用高品質的物料製造，___。", ans: "抗摔耐磨", keys: ["摔", "磨", "耐用", "堅固", "不易壞", "不易損"], hint: "方向：形容物體掉在地板上不易損壞，表面也不容易被刮花。", tech: "突出優點/效果", alts: "其他合理答案：經久耐用 / 不易損壞 / 防刮花" },
-            { type: "fill", text: "功能方面，這款智能運動手錶採用 AI 健康管家系統，可以___。", ans: "智能監測心率、血氧、血壓和壓力指數", keys: ["監測", "心率", "血氧", "血壓", "壓力", "健康", "身體狀況"], hint: "方向：跟測量常見的身體健康數據有關（如心跳、血液狀況等）。", tech: "突出優點/效果", alts: "其他合理答案：全方位追蹤健康數據 / 實時了解身體狀況" },
-            { type: "fill", text: "功能方面，這款智能運動手錶支援多種電子支付，___。", ans: "沒帶手機也能輕鬆購物", keys: ["沒帶手機", "手機", "購物", "付款", "買東西", "結帳"], hint: "方向：既然支援電子支付，就算出門忘記帶通訊設備，買東西會受影響嗎？", tech: "突出優點/效果", alts: "其他合理答案：付款快捷方便 / 抬手即可結帳" }
+            { type: "mcq", text: "外形方面，這款智能運動手錶輕巧美觀，___、外觀時尚。", ans: "又輕又薄", opts: [ { text: "採用重金屬打造，極具份量感", feedback: "份量感通常代表較重，但這款手錶強調的是「輕巧美觀」與輕薄。", isCorrect: false }, { text: "設計複雜繁瑣", feedback: "錯誤。影片展示的設計是簡約而非複雜的。", isCorrect: false }, { text: "又輕又薄", isCorrect: true } ], tech: "轉換表達方式", alts: "其他合理答案：輕盈纖薄 / 毫無厚重感" },
+            { type: "mcq", text: "外形方面，這款智能運動手錶簡約輕巧設計時尚，___。", ans: "充滿時代氣息，長時間佩戴零負擔", opts: [ { text: "奢華鑲鑽設計，適合出席晚宴", feedback: "鑲鑽設計很華麗，但這款手錶主打的是「時代氣息與零負擔」的運動風。", isCorrect: false }, { text: "造型復古，適合收藏不宜日常佩戴", feedback: "錯誤。這是一款現代科技產品，且非常適合日常佩戴。", isCorrect: false }, { text: "充滿時代氣息，長時間佩戴零負擔", isCorrect: true } ], tech: "突出優點/效果", alts: "其他合理答案：極具科技感，佩戴舒適自然" },
+            { type: "mcq", text: "外形方面，這款智能運動手錶配有多種顏色，___。", ans: "可以搭配不同衣服", opts: [ { text: "專為專業極限運動員設計，功能硬核", feedback: "硬核功能很棒，但題目問的是「多種顏色」帶來的優勢（搭配衣服）。", isCorrect: false }, { text: "只適合在健身房內佩戴", feedback: "錯誤。它的多種顏色設計讓它同樣適合日常外出與不同穿搭。", isCorrect: false }, { text: "可以搭配不同衣服", isCorrect: true } ], tech: "突出優點/效果", alts: "其他合理答案：百搭易襯 / 適合不同造型" },
+            { type: "mcq", text: "質量方面，這款智能運動手錶採用金屬外殼，___。", ans: "有效防跌防撞", opts: [ { text: "外殼採用透明玻璃，晶瑩剔透", feedback: "透明材質雖然美觀，但題目已經指明是「金屬外殼」，強調的是防撞效果。", isCorrect: false }, { text: "容易刮花，不建議在戶外使用", feedback: "錯誤。運動手錶的金屬外殼設計就是為了能應付戶外環境。", isCorrect: false }, { text: "有效防跌防撞", isCorrect: true } ], tech: "突出優點/效果", alts: "其他合理答案：堅固耐用 / 抗摔能力強" },
+            { type: "fill", text: "質量方面，這款智能運動手錶採用高品質的物料製造，___。", ans: "抗摔耐磨", keys: ["摔", "磨", "耐用", "堅固", "不易壞", "不易損", "防刮", "抗跌", "強韌", "耐撞", "防撞"], hint: "方向：形容物體掉在地板上不易損壞，表面也不容易被刮花。", tech: "突出優點/效果", alts: "其他合理答案：經久耐用 / 不易損壞 / 防刮花 / 堅固耐撞抗衝擊 / 防摔防刮" },
+            { type: "fill", text: "功能方面，這款智能運動手錶採用 AI 健康管家系統，可以___。", ans: "智能監測心率、血氧、血壓和壓力指數", keys: ["監測", "心率", "血氧", "血壓", "壓力", "健康", "身體狀況", "體徵", "生理", "測量", "檢測", "追蹤", "紀錄", "記錄"], hint: "方向：跟測量常見的身體健康數據有關（如心跳、血液狀況等）。", tech: "突出優點/效果", alts: "其他合理答案：全方位追蹤健康數據 / 實時了解身體狀況 / 精準測量多項生理指標 / 檢測心跳與健康資訊" },
+            { type: "fill", text: "功能方面，這款智能運動手錶支援多種電子支付，___。", ans: "沒帶手機也能輕鬆購物", keys: ["沒帶手機", "手機", "購物", "付款", "買東西", "結帳", "支付", "消費", "付錢", "交易", "買單", "結帳"], hint: "方向：既然支援電子支付，就算出門忘記帶通訊設備，買東西會受影響嗎？", tech: "突出優點/效果", alts: "其他合理答案：付款快捷方便 / 抬手即可結帳 / 無需手機也能支付 / 消費結帳更輕鬆" }
         ]
     },
     'phone': {
-        title: "第三關：智能摺疊手機", video: "phone_5.mp4", // 更新檔名
+        title: "第三關：智能摺疊手機", video: "phone_5.mp4", 
         questions: [
-            { type: "mcq", text: "功能方面，這款手機有指紋辨識功能，___。", ans: "解鎖非常方便", 
-              opts: [
-                  { text: "具備傳統密碼鎖，提供經典體驗", feedback: "傳統密碼鎖很經典，但「指紋辨識」最大的優勢是快速解鎖的方便性。", isCorrect: false },
-                  { text: "解鎖過程繁瑣，需要多重驗證", feedback: "錯誤。指紋辨識是為了加速解鎖，並不繁瑣。", isCorrect: false },
-                  { text: "解鎖非常方便", isCorrect: true }
-              ], tech: "突出優點/效果", alts: "其他合理答案：一觸即開 / 快捷安全" },
-            { type: "mcq", text: "功能方面，這款手機有遊戲模式，___。", ans: "流暢暢玩/火力全開不卡頓", 
-              opts: [
-                  { text: "內建經典懷舊小遊戲，充滿童趣", feedback: "懷舊小遊戲很有趣，但影片強調的遊戲模式是能「火力全開」應付大型遊戲不卡頓。", isCorrect: false },
-                  { text: "遊戲畫面經常出現延遲和卡頓", feedback: "錯誤。遊戲模式的重點就是為了解決延遲與卡頓問題。", isCorrect: false },
-                  { text: "流暢暢玩/火力全開不卡頓", isCorrect: true }
-              ], tech: "突出優點/效果", alts: "其他合理答案：遊戲體驗極佳 / 運行大型遊戲毫無壓力" },
-            { type: "mcq", text: "功能方面，具備人工智能助手，還多點觸控顯示屏，___。", ans: "操作簡易方便", 
-              opts: [
-                  { text: "系統設定極度專業，適合工程師使用", feedback: "專業設定適合工程師，但這款手機的 AI 與多點觸控是為了讓一般使用者也能「操作簡易」。", isCorrect: false },
-                  { text: "觸控反應遲鈍，操作容易失誤", feedback: "錯誤。多點觸控通常十分靈敏且直觀。", isCorrect: false },
-                  { text: "操作簡易方便", isCorrect: true }
-              ], tech: "突出優點/效果", alts: "其他合理答案：使用直觀容易 / 互動流暢自然" },
-            { type: "mcq", text: "質量方面，這款手機待機時間長，___。", ans: "不需要常常充電", 
-              opts: [
-                  { text: "支援極速耗電模式，讓效能最大化", feedback: "極速模式會大量耗電，但題目強調的是「待機時間長」的優點，也就是不用常充電。", isCorrect: false },
-                  { text: "待機時間極短，需要隨身攜帶充電寶", feedback: "錯誤。待機時間長代表不需要頻繁充電，這點描述完全相反。", isCorrect: false },
-                  { text: "不需要常常充電", isCorrect: true }
-              ], tech: "突出優點/效果", alts: "其他合理答案：續航力持久 / 告別電量焦慮" },
-            { type: "fill", text: "質量方面，這款手機防塵防水，___。", ans: "下雨弄濕了也不怕", keys: ["下雨", "雨", "濕", "水", "惡劣環境", "防潑", "不怕水"], hint: "方向：既然防水，遇到壞天氣（例如天降甘霖）時使用起來會怎樣？", tech: "突出優點/效果", alts: "其他合理答案：適合各種惡劣環境 / 日常防潑水無憂" },
-            { type: "fill", text: "質量方面，這款手機採用金屬外殼，___。", ans: "豪華典雅", keys: ["豪華", "典雅", "高貴", "高級", "美觀", "堅固", "質感"], hint: "方向：金屬給人的感覺通常是高貴、有氣質的，試著用四個字的形容詞表達。", tech: "突出優點/效果", alts: "其他合理答案：質感高級 / 堅固且美觀" },
-            
-            // 這裡更新了第七題，將第二個答案直接寫入題目文字中
-            { type: "fill", text: "外型方面，這款手機備有折疊屏幕，展開___，還可以分屏處理文件，工作效率翻倍。", ans: "秒變小平板追劇", keys: ["平板", "大螢幕", "追劇", "看片", "秒變", "視野", "體驗"], hint: "方向：螢幕變大後像什麼設備？可以用來做什麼娛樂活動？", tech: "突出優點/效果", alts: "其他合理答案：視覺體驗升級 / 視野更廣闊" },
-            
-            { type: "fill", text: "外型方面，這款手機機身超薄，___。", ans: "輕巧美觀，簡約時尚，有多種顏色選擇", keys: ["輕巧", "美觀", "簡約", "時尚", "顏色", "便攜", "精緻"], hint: "方向：形容重量輕盈、外觀風格，以及它在色彩上提供的多樣性。", tech: "突出優點/效果", alts: "其他合理答案：顏值極高，便於攜帶且款式多樣" }
+            { type: "mcq", text: "功能方面，這款手機有指紋辨識功能，___。", ans: "解鎖非常方便", opts: [ { text: "具備傳統密碼鎖，提供經典體驗", feedback: "傳統密碼鎖很經典，但「指紋辨識」最大的優勢是快速解鎖的方便性。", isCorrect: false }, { text: "解鎖過程繁瑣，需要多重驗證", feedback: "錯誤。指紋辨識是為了加速解鎖，並不繁瑣。", isCorrect: false }, { text: "解鎖非常方便", isCorrect: true } ], tech: "突出優點/效果", alts: "其他合理答案：一觸即開 / 快捷安全" },
+            { type: "mcq", text: "功能方面，這款手機有遊戲模式，___。", ans: "流暢暢玩/火力全開不卡頓", opts: [ { text: "內建經典懷舊小遊戲，充滿童趣", feedback: "懷舊小遊戲很有趣，但影片強調的遊戲模式是能「火力全開」應付大型遊戲不卡頓。", isCorrect: false }, { text: "遊戲畫面經常出現延遲和卡頓", feedback: "錯誤。遊戲模式的重點就是為了解決延遲與卡頓問題。", isCorrect: false }, { text: "流暢暢玩/火力全開不卡頓", isCorrect: true } ], tech: "突出優點/效果", alts: "其他合理答案：遊戲體驗極佳 / 運行大型遊戲毫無壓力" },
+            { type: "mcq", text: "功能方面，具備人工智能助手，還多點觸控顯示屏，___。", ans: "操作簡易方便", opts: [ { text: "系統設定極度專業，適合工程師使用", feedback: "專業設定適合工程師，但這款手機的 AI 與多點觸控是為了讓一般使用者也能「操作簡易」。", isCorrect: false }, { text: "觸控反應遲鈍，操作容易失誤", feedback: "錯誤。多點觸控通常十分靈敏且直觀。", isCorrect: false }, { text: "操作簡易方便", isCorrect: true } ], tech: "突出優點/效果", alts: "其他合理答案：使用直觀容易 / 互動流暢自然" },
+            { type: "mcq", text: "質量方面，這款手機待機時間長，___。", ans: "不需要常常充電", opts: [ { text: "支援極速耗電模式，讓效能最大化", feedback: "極速模式會大量耗電，但題目強調的是「待機時間長」的優點，也就是不用常充電。", isCorrect: false }, { text: "待機時間極短，需要隨身攜帶充電寶", feedback: "錯誤。待機時間長代表不需要頻繁充電，這點描述完全相反。", isCorrect: false }, { text: "不需要常常充電", isCorrect: true } ], tech: "突出優點/效果", alts: "其他合理答案：續航力持久 / 告別電量焦慮" },
+            { type: "fill", text: "質量方面，這款手機防塵防水，___。", ans: "下雨弄濕了也不怕", keys: ["下雨", "雨", "濕", "水", "惡劣環境", "防潑", "不怕水", "淋", "水花", "浸水", "防水"], hint: "方向：既然防水，遇到壞天氣（例如天降甘霖）時使用起來會怎樣？", tech: "突出優點/效果", alts: "其他合理答案：適合各種惡劣環境 / 日常防潑水無憂 / 淋到雨也能正常使用 / 無懼水花飛濺" },
+            { type: "fill", text: "質量方面，這款手機採用金屬外殼，___。", ans: "豪華典雅", keys: ["豪華", "典雅", "高貴", "高級", "美觀", "堅固", "質感", "奢華", "精緻", "優雅", "大氣", "尊貴", "華麗", "氣派"], hint: "方向：金屬給人的感覺通常是高貴、有氣質的，試著用四個字的形容詞表達。", tech: "突出優點/效果", alts: "其他合理答案：質感高級 / 堅固且美觀 / 氣派奢華 / 外觀極具尊貴感" },
+            { type: "fill", text: "外型方面，這款手機備有折疊屏幕，展開___，還可以分屏處理文件，工作效率翻倍。", ans: "秒變小平板追劇", keys: ["平板", "大螢幕", "追劇", "看片", "秒變", "視野", "體驗", "影片", "娛樂", "看戲", "視頻", "大屏", "劇集"], hint: "方向：螢幕變大後像什麼設備？可以用來做什麼娛樂活動？", tech: "突出優點/效果", alts: "其他合理答案：視覺體驗升級 / 視野更廣闊 / 瞬間成為平板看影片 / 享受大螢幕娛樂" },
+            { type: "fill", text: "外型方面，這款手機機身超薄，___。", ans: "輕巧美觀，簡約時尚，有多種顏色選擇", keys: ["輕巧", "美觀", "簡約", "時尚", "顏色", "便攜", "精緻", "輕薄", "好看", "漂亮", "色彩", "多色", "款式", "潮流", "纖薄"], hint: "方向：形容重量輕盈、外觀風格，以及它在色彩上提供的多樣性。", tech: "突出優點/效果", alts: "其他合理答案：顏值極高，便於攜帶且款式多樣 / 時尚潮流且備有豐富色彩 / 纖薄精巧不佔空間" }
+        ]
+    },
+    'fridge': {
+        title: "第四關：雙門冰箱", video: "V4.mp4",
+        questions: [
+            { type: "mcq", text: "設計方面，這款冰箱容量有 600 公升，是雙門設計的，___。", ans: "擺放食物和飲料的位置更靈活", opts: [
+                { text: "外觀採用閃亮水鑽鑲嵌，極具奢華感", feedback: "雖然奢華設計很吸引人，但雙門大容量設計的主要優點是讓「擺放位置更靈活」。", isCorrect: false },
+                { text: "只能容納少數幾瓶飲料", feedback: "錯誤。容量高達600公升，空間非常大。", isCorrect: false },
+                { text: "擺放食物和飲料的位置更靈活", isCorrect: true }
+            ], tech: "突出優點", alts: "其他合理答案：空間寬敞易於分類 / 儲物不受限" },
+            { type: "mcq", text: "設計方面，這款冰箱層架採用強化玻璃，___。", ans: "大大增加承重能力", opts: [
+                { text: "具備自動加熱功能，隨時保溫", feedback: "加熱保溫是好功能，但強化玻璃的特點是為了增加「承重能力」，且冰箱主要是製冷。", isCorrect: false },
+                { text: "容易碎裂，需要小心使用", feedback: "錯誤。強化玻璃的特點就是堅固不易碎。", isCorrect: false },
+                { text: "大大增加承重能力", isCorrect: true }
+            ], tech: "突出效果", alts: "其他合理答案：堅固耐用不怕壓 / 放置重物也安心" },
+            { type: "mcq", text: "功能方面，這款冰箱搭載 AI 智能溫控系統，能精準控制各區域溫度，___。", ans: "有效保持食材的品質", opts: [
+                { text: "內置環繞立體聲音響，播放音樂", feedback: "音響很酷，但溫控系統的作用是為了「保持食材品質」。", isCorrect: false },
+                { text: "導致耗電量急劇增加", feedback: "錯誤。AI智能溫控通常能更有效節能並保鮮。", isCorrect: false },
+                { text: "有效保持食材的品質", isCorrect: true }
+            ], tech: "突出優點", alts: "其他合理答案：延長食物保鮮期 / 確保蔬果新鮮" },
+            { type: "fill", text: "功能方面，這款冰箱備有強力的蜂巢型除臭器，___。", ans: "可以有效地分解異味", keys: ["異味", "除臭", "分解", "味", "清新", "臭味", "去味", "淨化", "氣味", "保鮮", "防臭", "消除"], hint: "方向：除臭器的主要功能是什麼？對冰箱裡的氣味有什麼幫助？", tech: "突出效果", alts: "其他合理答案：讓冰箱保持空氣清新 / 消除食物混合的怪味 / 淨化內部空氣確保無異味" },
+            { type: "fill", text: "價格方面，這款冰箱每台原價$13000，現在___。", ans: "推廣價$9000，非常實惠", keys: ["9000", "實惠", "便宜", "推廣", "特價", "划算", "平", "折扣", "減價", "優惠", "超值"], hint: "方向：指出現在的具體優惠價格($9000)，並用一個詞形容這個價格很划算。", tech: "突出優點", alts: "其他合理答案：特價$9000，超級划算 / 減至$9000，性價比極高 / 優惠價9000，物超所值" },
+            { type: "fill", text: "售後服務方面，惠顧超過$4000，我們提供___，也可以回收舊冰箱。", ans: "免費送貨服務", keys: ["免費", "送貨", "運送", "包郵", "免運費", "送", "送到", "派送", "上門", "宅配", "包送", "直送"], hint: "方向：買了這麼大的家電，店家通常會主動提供什麼不用錢的物流服務？", tech: "主動提供優惠/服務", alts: "其他合理答案：免運費送到府上 / 專人免費派送 / 提供免費宅配上門" }
         ]
     }
 };
@@ -369,12 +348,15 @@ function enterLevel(levelId) {
     currentQIndex = 0;
     currentScore = 0; 
     
+    // 進入新關卡或重玩時，清空當前關卡的填充紀錄，確保只有最新一次的成績被匯出
+    userFillRecords[currentLevelId] = {}; 
+
     const video = document.getElementById('game-video');
     video.src = levelData[levelId].video;
     
     video.onerror = function() {
         console.error("無法載入影片:", video.src);
-        alert(`無法載入影片檔案 ${levelData[levelId].video}！\n請確保 HTML 檔案與 mp4 影片檔案存放在同一個資料夾，並且檔名大小寫完全一致。`);
+        alert(`無法載入影片檔案 ${levelData[levelId].video}！\n請確保 HTML 檔案與影片檔案存放在同一個資料夾，並且檔名大小寫完全一致。`);
     };
 
     video.load();
@@ -382,9 +364,8 @@ function enterLevel(levelId) {
     loadQuestion();
 }
 
-// 重新挑戰當前關卡
 function retryCurrentLevel() {
-    if (confirm("確定要重新挑戰本關嗎？目前本關的分數將會重置。")) {
+    if (confirm("確定要重新挑戰本關嗎？目前本關的分數與作答紀錄將會重置。")) {
         playSound('click');
         enterLevel(currentLevelId);
     }
@@ -493,6 +474,10 @@ function checkFillAnswer() {
     
     let isCorrect = q.keys.some(key => input.includes(key));
     
+    // 記錄學生的填充答案，用於老師檢查 (綠色底線表示達標，紅色底線表示未達標)
+    const formattedInput = `<span style="color:${isCorrect ? '#2e7d32' : '#c62828'}; text-decoration:underline; font-weight:bold;">${input}</span>`;
+    userFillRecords[currentLevelId][currentQIndex] = q.text.replace('___', formattedInput);
+    
     if (isCorrect) {
         playSound('correct');
         currentScore += 4; 
@@ -539,20 +524,54 @@ function showModal(title, text) {
 
 function showFinalResult() {
     playSound('correct');
-    const total = scores.fan + scores.watch + scores.phone;
+    const total = scores.fan + scores.watch + scores.phone + scores.fridge;
     document.getElementById('cert-name').textContent = playerName;
     document.getElementById('cert-score').textContent = total;
+    
+    // 生成老師檢查用的填充紀錄列表
+    const answersContainer = document.getElementById('cert-answers');
+    answersContainer.innerHTML = '<h3 style="color:#7cb342; margin-top:0;">📝 學生填充題作答紀錄</h3>';
+    let hasAnswers = false;
+
+    // 依序渲染每個關卡的紀錄
+    const levelOrder = ['fan', 'watch', 'phone', 'fridge'];
+    levelOrder.forEach(lvl => {
+        const records = userFillRecords[lvl];
+        if (records && Object.keys(records).length > 0) {
+            hasAnswers = true;
+            let html = `<div style="margin-bottom:15px;">
+                            <h4 style="margin:5px 0; color:#5d4037; font-size:1.1rem;">▪ ${levelData[lvl].title}</h4>
+                            <ul style="margin:0; padding-left:20px; font-size:1rem; color:#424242;">`;
+            for (const qIdx in records) {
+                html += `<li style="margin-bottom:8px; line-height:1.5;">${records[qIdx]}</li>`;
+            }
+            html += `</ul></div>`;
+            answersContainer.innerHTML += html;
+        }
+    });
+
+    if (!hasAnswers) {
+        answersContainer.innerHTML += '<p style="color:#888;">尚未作答任何填充題。</p>';
+    }
+
     switchScreen('screen-result');
 }
 
 function downloadScreenshot() {
     playSound('click');
     const certArea = document.getElementById('cert-area');
-    html2canvas(certArea).then(canvas => {
+    
+    // 短暫修改樣式以確保截圖能完整拍下長內容
+    const originalMaxHeight = certArea.style.maxHeight;
+    certArea.style.maxHeight = 'none'; 
+    
+    html2canvas(certArea, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
         const link = document.createElement('a');
-        link.download = `${playerName}_產品發表過三關成績.png`;
+        link.download = `${playerName}_產品發表過三關_含作答紀錄.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
+        // 恢復原本樣式
+        certArea.style.maxHeight = originalMaxHeight;
     });
 }
 </script>
