@@ -132,21 +132,21 @@
             <img src="P1.jpg" alt="便攜風扇" onerror="this.src='https://via.placeholder.com/100?text=P1'">
             <div class="level-info">
                 <h3>第一關：便攜風扇</h3>
-                <div class="level-score">最高分數: <span id="score-fan">0</span></div>
+                <div class="level-score">最高分數: <span id="score-fan">0</span> / 14</div>
             </div>
         </div>
         <div class="level-card" onclick="enterLevel('watch')">
             <img src="P2.jpg" alt="智能運動手錶" onerror="this.src='https://via.placeholder.com/100?text=P2'">
             <div class="level-info">
                 <h3>第二關：智能手錶</h3>
-                <div class="level-score">最高分數: <span id="score-watch">0</span></div>
+                <div class="level-score">最高分數: <span id="score-watch">0</span> / 20</div>
             </div>
         </div>
         <div class="level-card" onclick="enterLevel('phone')">
             <img src="P3.jpg" alt="智能摺疊手機" onerror="this.src='https://via.placeholder.com/100?text=P3'">
             <div class="level-info">
                 <h3>第三關：摺疊手機</h3>
-                <div class="level-score">最高分數: <span id="score-phone">0</span></div>
+                <div class="level-score">最高分數: <span id="score-phone">0</span> / 24</div>
             </div>
         </div>
         <!-- 第四關：雙門冰箱 -->
@@ -154,7 +154,7 @@
             <img src="P4.jpg" alt="雙門冰箱" onerror="this.src='https://via.placeholder.com/100?text=P4'">
             <div class="level-info">
                 <h3>第四關：雙門冰箱</h3>
-                <div class="level-score">最高分數: <span id="score-fridge">0</span></div>
+                <div class="level-score">最高分數: <span id="score-fridge">0</span> / 18</div>
             </div>
         </div>
     </div>
@@ -266,7 +266,6 @@ let userFillRecords = { fan: {}, watch: {}, phone: {}, fridge: {} };
 let mcqWrongCount = 0; 
 let hintUsed = false;  
 
-// 大幅擴增了所有填充題的 keywords (keys) 與 替代答案 (alts)，增加容錯率與合理性
 const levelData = {
     'fan': {
         title: "第一關：便攜風扇", video: "fan_5.mp4", 
